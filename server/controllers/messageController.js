@@ -1,18 +1,6 @@
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
-
-const aiResponses = [
-  "I understand what you're saying.",
-  "That's interesting! Tell me more.",
-  "I'm here to help. What else would you like to discuss?",
-  "I'm processing your message...",
-  "Could you elaborate on that?",
-  "That's a great point!",
-  "I see what you mean.",
-  "Let me think about that...",
-  "Interesting perspective!",
-  "I'm analyzing your message..."
-];
+const aiResponses = require('../data/aiResponses.json').responses;
 
 // Get all messages for a conversation
 exports.getMessages = async (req, res) => {
