@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { getToken } from '../utils/auth';
+import { useSocket } from '../context/SocketContext';
 import ChatWindow from '../components/ChatWindow';
 import LeftSidebar from '../components/LeftSidebar';
 import Box from '@mui/material/Box';
@@ -10,7 +11,9 @@ export default function Home() {
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [conversations, setConversations] = useState([]);
+  const [isAITyping, setIsAITyping] = useState(false);
   const navigate = useNavigate();
+  const socket = useSocket();
 
   const fetchConversations = async () => {
     try {
@@ -44,6 +47,36 @@ export default function Home() {
     fetchMessages();
   }, [conversationId]);
 
+  useEffect(() => {
+    if (!socket) return;
+
+    // Join conversation room when conversationId changes
+    if (conversationId) {
+      socket.emit('join_conversation', conversationId);
+    }
+
+    // Listen for new messages
+    socket.on('receive_message', (message) => {
+      setMessages(prevMessages => [...prevMessages, message]);
+    });
+
+    // Listen for AI typing state
+    socket.on('ai_typing', (isTyping) => {
+      setIsAITyping(isTyping);
+    });
+
+    // Listen for errors
+    socket.on('error', (error) => {
+      console.error('Socket error:', error);
+    });
+
+    return () => {
+      socket.off('receive_message');
+      socket.off('ai_typing');
+      socket.off('error');
+    };
+  }, [socket, conversationId]);
+
   const handleNewChat = async () => {
     try {
       // Create a new conversation
@@ -68,36 +101,16 @@ export default function Home() {
         setConversations(conversationResponse.data.conversations);
       }
 
-      const response = await api.post('/messages', {
+      // Emit message through socket
+      socket.emit('send_message', {
         text,
+        sender: 'user',
         conversationId: currentConversationId
       });
-      
-      // Set user message immediately
-      if (!conversationId) {
-        setMessages([response.data.userMessage]);
-       
-      } else {
-        setMessages(prevMessages => [...prevMessages, response.data.userMessage]);
-        
-      }
 
-      if(response.data.aiMessage){
-        setIsLoading(true);
-      }
+      setIsLoading(true);
       
-      // Add delay before setting AI message
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 2000));
-      
-      if (!conversationId) {
-        setMessages(prevMessages => [...prevMessages, response.data.aiMessage]);
-        setIsLoading(false);
-      } else {
-        setMessages(prevMessages => [...prevMessages, response.data.aiMessage]);
-        setIsLoading(false);
-      }
-      
-      return response.data;
+      return { conversationId: currentConversationId };
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;
@@ -119,6 +132,7 @@ export default function Home() {
           messages={messages}
           onNewConversation={setConversationId}
           onSend={handleSend}
+          isAITyping={isAITyping}
         />
       </Box>
     </Box>

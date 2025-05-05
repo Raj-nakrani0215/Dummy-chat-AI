@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography';
 import TypingLoader from './TypingLoader';
 import MessageInput from './MessageInput';
 
-export default function ChatWindow({ conversationId, messages: initialMessages, onNewConversation, onSend }) {
+export default function ChatWindow({ conversationId, messages: initialMessages, onNewConversation, onSend, isAITyping }) {
   const [messages, setMessages] = useState(initialMessages || []);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -24,15 +24,10 @@ export default function ChatWindow({ conversationId, messages: initialMessages, 
 
   const handleSendMessage = async (text) => {
     try {
-
-      const response = await onSend(text ,setIsLoading);
-      setMessages(prevMessages => [...prevMessages, response.userMessage, response.aiMessage]);
-      
+      setIsLoading(true);
+      await onSend(text, setIsLoading);
     } catch (error) {
       console.error('Error sending message:', error);
-      setIsLoading(false);
-    }
-    finally{
       setIsLoading(false);
     }
   };
@@ -86,7 +81,7 @@ export default function ChatWindow({ conversationId, messages: initialMessages, 
             </Box>
           </Box>
         ))}
-        {isLoading && (
+        {isAITyping && (
           <Box
             sx={{
               display: 'flex',

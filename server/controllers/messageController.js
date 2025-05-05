@@ -97,3 +97,25 @@ exports.handleSocketMessage = async (message) => {
     throw error;
   }
 };
+
+// Generate AI response for socket messages
+exports.generateAIResponse = async (conversationId) => {
+  try {
+    // Add random delay between 3-5 seconds
+    const delay = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+    const aiMessage = new Message({
+      text: randomResponse,
+      sender: 'AI',
+      conversationId
+    });
+
+    const savedAiMessage = await aiMessage.save();
+    return savedAiMessage;
+  } catch (error) {
+    console.error('Error generating AI response:', error);
+    throw error;
+  }
+};
